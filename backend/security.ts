@@ -1,3 +1,4 @@
+
 const developmentJwtSecret = 'local-development-secret-change-me';
 
 function estimatedSecretEntropy(secret: string): number {
@@ -39,6 +40,7 @@ export function resolveJwtSecret(environment: NodeJS.ProcessEnv): string {
       && Buffer.from(configuredSecret, 'base64').length === 48
       && Buffer.from(configuredSecret, 'base64').toString('base64') === configuredSecret
     : false;
+
   if (
     !configuredSecret
     || !isRandomBytesBase64
@@ -58,16 +60,19 @@ export function resolveClientOrigin(environment: NodeJS.ProcessEnv): string {
   const isProduction = environment.NODE_ENV === 'production';
   const configuredOrigin = environment.CLIENT_ORIGIN?.trim()
     || (isProduction ? environment.RENDER_EXTERNAL_URL?.trim() : '');
+
   if (!configuredOrigin) {
     if (isProduction) throw new Error('Production requires an explicit HTTPS CLIENT_ORIGIN or RENDER_EXTERNAL_URL.');
     return 'http://localhost:5174';
   }
+
   let parsed: URL;
   try {
     parsed = new URL(configuredOrigin);
   } catch {
     throw new Error('CLIENT_ORIGIN must be a valid absolute URL origin.');
   }
+
   if (
     !['http:', 'https:'].includes(parsed.protocol)
     || parsed.origin !== configuredOrigin.replace(/\/$/, '')
@@ -79,6 +84,7 @@ export function resolveClientOrigin(environment: NodeJS.ProcessEnv): string {
       ? 'Production CLIENT_ORIGIN must be an HTTPS origin without a path or credentials.'
       : 'CLIENT_ORIGIN must be an HTTP(S) origin without a path or credentials.');
   }
+
   return parsed.origin;
 }
 
@@ -94,27 +100,41 @@ export function resolvePort(environment: NodeJS.ProcessEnv): number {
 export function resolveTrustProxy(environment: NodeJS.ProcessEnv): boolean | number | string {
   const value = environment.TRUST_PROXY?.trim();
   if (!value) return false;
+
   if (/^\d+$/.test(value)) {
     const hops = Number(value);
-    if (!Number.isSafeInteger(hops) || hops < 1) throw new Error('TRUST_PROXY hop count must be a positive whole number.');
+    if (!Number.isSafeInteger(hops) || hops < 1) {
+      throw new Error('TRUST_PROXY hop count must be a positive whole number.');
+    }
     return hops;
   }
+
   return value;
 }
 
 export function isProductionEmailConfigured(environment: NodeJS.ProcessEnv): boolean {
+  const gmailUser = environment.GMAIL_USER?.trim();
+  const appPassword = environment.GMAIL_APP_PASSWORD?.replace(/\s/g, '');
+  const origin = environment.CLIENT_ORIGIN?.trim();
+
   if (
-    environment.EMAIL_PROVIDER !== 'resend'
-    || !environment.RESEND_API_KEY?.trim()
-    || !environment.EMAIL_FROM?.trim()
-    || !environment.CLIENT_ORIGIN?.trim()
+    environment.EMAIL_PROVIDER !== 'gmail'
+    || !gmailUser
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(gmailUser)
+    || !appPassword
+    || !/^[A-Za-z0-9]{16}$/.test(appPassword)
+    || !origin
     || environment.PASSWORD_RESET_EMAIL_ENABLED !== 'true'
   ) {
     return false;
   }
 
   try {
-    return new URL(environment.CLIENT_ORIGIN).protocol === 'https:';
+    const parsed = new URL(origin);
+    return parsed.protocol === 'https:'
+      && parsed.origin === origin.replace(/\/$/, '')
+      && !parsed.username
+      && !parsed.password;
   } catch {
     return false;
   }
