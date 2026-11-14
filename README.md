@@ -8,6 +8,7 @@ FundiConnect is a React + TypeScript construction-workforce platform for Kenya. 
 - Backend: Node.js, Express and TypeScript
 - Database: SQLite using `better-sqlite3`
 - Authentication: local email/password accounts, bcrypt password hashing and JWT sessions
+- Password-reset email: Nodemailer with Gmail SMTP
 - Evidence files: local `uploads/` directory (5 MB maximum per file)
 
 ## Requirements
@@ -59,41 +60,57 @@ npm run build
 npm start
 ```
 
-The production frontend build is written to `dist/`. `npm start` runs the API in production mode and serves that frontend and its client-side routes from the same web service. For a single-service deployment such as Render, use build command `npm ci --include=dev && npm run build` and start command `npm start`. Set `NODE_ENV=production`, `JWT_SECRET` (standard Base64 encoding of 48 cryptographically random bytes), `DATABASE_FILE` and `UPLOAD_DIR` (absolute writable paths, such as `/tmp/fundiconnect.sqlite` and `/tmp/fundiconnect-uploads` on an ephemeral Linux service). Render's `RENDER_EXTERNAL_URL` automatically provides the public HTTPS service URL for CORS; set `CLIENT_ORIGIN` only if you use a custom domain or need to override it. Do not set `VITE_API_BASE_URL`; same-origin relative API requests are used. SQLite and uploaded evidence remain local to the service and may be lost when its ephemeral filesystem is cleared. The production process uses Render's `PORT` and binds to `0.0.0.0`. CORS is restricted to the configured client origin. Leave password-reset email disabled unless Resend credentials and sender configuration have been securely supplied and verified. Set `TRUST_PROXY` only to the actual trusted proxy hop count or IP ranges used by the deployment; it defaults to disabled. The API applies per-process, per-IP limits to login (10 per 15 minutes), registration (5 per hour), password-reset requests (5 per hour) and reset submissions (10 per 15 minutes). Override each count/window with the corresponding `*_RATE_LIMIT_MAX` and `*_RATE_LIMIT_WINDOW_MS` settings in `.env.example`. For multiple API replicas, configure equivalent limits at the gateway because in-memory API counters are not shared across instances.
+The production frontend build is written to `dist/`. `npm start` runs the API in production mode and serves that frontend and its client-side routes from the same web service. For a single-service deployment such as Render, use build command `npm ci --include=dev && npm run build` and start command `npm start`.
+
+Set `NODE_ENV=production`, `JWT_SECRET` (standard Base64 encoding of 48 cryptographically random bytes), `DATABASE_FILE` and `UPLOAD_DIR` (absolute writable paths, such as `/tmp/fundiconnect.sqlite` and `/tmp/fundiconnect-uploads` on an ephemeral Linux service). Render's `RENDER_EXTERNAL_URL` automatically provides the public HTTPS service URL for CORS; set `CLIENT_ORIGIN` only if you use a custom domain or need to override it. Do not set `VITE_API_BASE_URL`; same-origin relative API requests are used.
+
+SQLite and uploaded evidence remain local to the service and may be lost when its ephemeral filesystem is cleared. The production process uses Render's `PORT` and binds to `0.0.0.0`. CORS is restricted to the configured client origin.
+
+Gmail password-reset delivery is optional. Keep `PASSWORD_RESET_EMAIL_ENABLED=false` until Gmail SMTP credentials have been securely configured and real delivery has been tested. To enable it, configure `EMAIL_PROVIDER=gmail`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, and `PASSWORD_RESET_EMAIL_ENABLED=true`. Store the Gmail App Password only as a secret in your hosting provider's environment settings. Never commit it to GitHub or put it in frontend configuration.
+
+Set `TRUST_PROXY` only to the actual trusted proxy hop count or IP ranges used by the deployment; it defaults to disabled. The API applies per-process, per-IP limits to login (10 per 15 minutes), registration (5 per hour), password-reset requests (5 per hour) and reset submissions (10 per 15 minutes). Override each count/window with the corresponding `*_RATE_LIMIT_MAX` and `*_RATE_LIMIT_WINDOW_MS` settings in `.env.example`. For multiple API replicas, configure equivalent limits at the gateway because in-memory API counters are not shared across instances.
 
 ### Deploy this repository to Render
 
-Use the connected repository's `main` branch and a **Free Web Service**. Set the build command to `npm ci --include=dev && npm run build` and the start command to `npm start`. Add these service environment variables before deploying:
+Use the connected repository's `main` branch and a **Free Web Service**. Set the build command to `npm ci --include=dev && npm run build` and the start command to `npm start`.
 
-| Key | Value |
-| --- | --- |
-| `NODE_ENV` | `production` |
-| `JWT_SECRET` | Generate a unique value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"` and keep it private. |
-| `CLIENT_ORIGIN` | Optional. Render's `RENDER_EXTERNAL_URL` is used automatically; set this only to override it (for example, when using a custom domain). |
-| `DATABASE_FILE` | `/tmp/fundiconnect.sqlite` |
-| `UPLOAD_DIR` | `/tmp/fundiconnect-uploads` |
-| `TRUST_PROXY` | `1` |
+Add these service environment variables before deploying:
 
-Render supplies `PORT`; do not set it manually. Leave `VITE_API_BASE_URL` unset so the frontend uses same-origin API requests. Do not enable password-reset email unless Resend credentials and sender configuration are ready. The free instance's database and uploaded files are ephemeral; export or back up any data you need to keep. After deploying, create the initial administrator with `npm run admin:bootstrap` in an interactive service shell if that feature is available for the service plan. The bootstrap command refuses to overwrite an existing administrator.
+| Key                            | Value                                                                                                                                   |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                     | `production`                                                                                                                            |
+| `JWT_SECRET`                   | Generate a unique value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"` and keep it private.    |
+| `CLIENT_ORIGIN`                | Optional. Render's `RENDER_EXTERNAL_URL` is used automatically; set this only to override it (for example, when using a custom domain). |
+| `DATABASE_FILE`                | `/tmp/fundiconnect.sqlite`                                                                                                              |
+| `UPLOAD_DIR`                   | `/tmp/fundiconnect-uploads`                                                                                                             |
+| `TRUST_PROXY`                  | `1`                                                                                                                                     |
+| `EMAIL_PROVIDER`               | `gmail` (only when configuring Gmail delivery)                                                                                          |
+| `GMAIL_USER`                   | Your Gmail sender address (only when configuring Gmail delivery)                                                                        |
+| `GMAIL_APP_PASSWORD`           | Your Gmail App Password, stored as a secret (only when configuring Gmail delivery)                                                      |
+| `PASSWORD_RESET_EMAIL_ENABLED` | `false` initially; change to `true` only after testing real email delivery.                                                             |
+
+Render supplies `PORT`; do not set it manually. Leave `VITE_API_BASE_URL` unset so the frontend uses same-origin API requests.
+
+The free instance's database and uploaded files are ephemeral; export or back up any data you need to keep. After deploying, create the initial administrator with `npm run admin:bootstrap` in an interactive service shell if that feature is available for the service plan. The bootstrap command refuses to overwrite an existing administrator.
 
 ## Main features included
 
 - Public registration and login with roles: fundi and foreman. Public assessor registration is disabled. Administrators can provision assessor accounts from **Users**; choose a strong initial password and share it with the assessor through a separate secure channel. Provisioning is audited.
-- Administrator-only access is reserved for an administrator account provisioned by the project owner with `npm run admin:bootstrap`; public registration cannot select administrator
-- Fundi profile and trade information
-- Foreman job posting, editing, closing/reopening and owner-scoped application review
-- Fundi application history with pending, accepted, rejected and withdrawn states; pending applications can be edited or withdrawn
-- Applications are checked against the existing matching and eligibility rules, and acceptance does not create an assignment
-- Explainable rule-based job matching
+- Administrator-only access is reserved for an administrator account provisioned by the project owner with `npm run admin:bootstrap`; public registration cannot select administrator.
+- Fundi profile and trade information.
+- Foreman job posting, editing, closing/reopening and owner-scoped application review.
+- Fundi application history with pending, accepted, rejected and withdrawn states; pending applications can be edited or withdrawn.
+- Applications are checked against the existing matching and eligibility rules, and acceptance does not create an assignment.
+- Explainable rule-based job matching.
 - Job matching weights are skills 30%, verification 25%, experience 15%, location 10%, availability 10% and published performance 10%.
-- Multi-trade crew recommendations
-- Employer work rosters are grouped by job; only accepted applications can be deliberately turned into assignments
-- Assignment editing, valid status transitions, cancellation without history deletion, fundi progress updates and employer attendance management
-- Role-scoped assignment details and participation history, with status/progress/attendance changes recorded in the existing audit log
-- Skills evidence uploads and assessor review
-- Performance reviews require valid assignment and verified attendance relationships and cannot be duplicated for an assignment
-- Dispute submission
-- Notifications and administrator overview/audit log API
+- Multi-trade crew recommendations.
+- Employer work rosters are grouped by job; only accepted applications can be deliberately turned into assignments.
+- Assignment editing, valid status transitions, cancellation without history deletion, fundi progress updates and employer attendance management.
+- Role-scoped assignment details and participation history, with status/progress/attendance changes recorded in the existing audit log.
+- Skills evidence uploads and assessor review.
+- Performance reviews require valid assignment and verified attendance relationships and cannot be duplicated for an assignment.
+- Dispute submission.
+- Notifications and administrator overview/audit log API.
 - The administrator dashboard presents read-only counts from users, jobs, applications, assignments, attendance, disputes, evidence and notifications; access requires an administrator account.
 
 ### Matching and eligibility
@@ -113,9 +130,17 @@ Stop the server before copying the SQLite database for a backup. Back up both th
 
 ## Important limitations
 
-This is an independent local migration of the existing FundiConnect concept and workflows, not a byte-for-byte copy of the AppDeploy deployment. The original cloud app's users, database records, uploaded evidence and authentication sessions are **not** automatically copied into this local edition. The local SQLite database starts empty. The application uses local storage and local authentication; it does not provide public hosting, SMS delivery, or email delivery unless the production Resend integration is configured and independently verified. It does not provide statutory trade accreditation. Review and test all workflows before using it with real users or sensitive records.
+This is an independent local migration of the existing FundiConnect concept and workflows, not a byte-for-byte copy of the AppDeploy deployment. The original cloud app's users, database records, uploaded evidence and authentication sessions are **not** automatically copied into this local edition. The local SQLite database starts empty.
 
-Forgot-password requests in development write a single-use reset link to the API server console; links expire after 30 minutes. In development, the API logs its environment, resolved database path and configured frontend origin at startup, and logs whether a reset request matched an account (with the email masked). Production password-reset delivery supports Resend: configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` and an HTTPS `CLIENT_ORIGIN`. Delivery stays disabled unless `PASSWORD_RESET_EMAIL_ENABLED=true`; enable it only after configuring and independently verifying the provider with your account. Automated tests mock provider responses and do not verify real delivery. Reset tokens are never returned by the production API or written to production logs. Successful password resets invalidate existing JWT sessions. Configure your hosting provider’s rate limiter too when running multiple API instances.
+The application uses local storage and local authentication. It does not provide SMS delivery or statutory trade accreditation. Gmail password-reset delivery is supported through Nodemailer and Gmail SMTP when correctly configured, but it is not enabled automatically. It must be configured and tested independently before production use.
+
+Forgot-password requests in development write a single-use reset link to the API server console; links expire after 30 minutes. In development, the API logs its environment, resolved database path and configured frontend origin at startup, and logs whether a reset request matched an account (with the email masked).
+
+Production password-reset delivery uses Gmail SMTP. Configure `EMAIL_PROVIDER=gmail`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` and an HTTPS `CLIENT_ORIGIN`. Delivery stays disabled unless `PASSWORD_RESET_EMAIL_ENABLED=true`. Use a Gmail App Password generated for an account with 2-Step Verification enabled. Store it securely as a hosting environment secret; never place it in source code, `.env.example`, frontend variables or GitHub.
+
+Automated tests verify the email-message construction and simulate SMTP delivery. They do not prove that Gmail will accept the credentials or deliver messages to a real inbox. Test actual delivery before enabling this feature for users. Reset tokens are never returned by the production API or written to production logs. Reset links expire after 30 minutes and can only be used once. Successful password resets invalidate existing JWT sessions.
+
+Configure your hosting provider's rate limiter too when running multiple API instances.
 
 Run the password-reset API integration tests with:
 
