@@ -1,0 +1,42 @@
+.mobile-toggle{display:none}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:3px solid #7da688;outline-offset:3px}
+.admin-highlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 20px}
+.admin-highlights>div{display:grid;gap:7px;padding:16px;background:#fff;border:1px solid #e8ede9;border-radius:12px}
+.admin-highlights span{font-size:11px;color:#718077}
+.admin-highlights strong{font:800 22px Manrope,sans-serif;color:#20382b}
+.admin-breakdowns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
+.status-list{display:grid}
+.status-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #edf0ed;color:#66746b;font-size:12px;text-transform:capitalize}
+.status-item:last-child{border-bottom:0}
+.status-item strong{color:#20382b}
+.admin-readonly-note{display:flex;align-items:center;gap:8px;color:#718077;font-size:11px}
+.admin-readonly-note svg{flex:none;color:#38664a}
+.admin-data-state{display:flex;align-items:center;gap:7px;margin:0 0 16px;color:#26703a;font-size:11px}
+.admin-data-state svg{flex:none}
+.loading-message{color:#718077;font-size:13px}
+.table-wrap{max-width:100%;overscroll-behavior-x:contain}
+table{min-width:540px}
+.form-grid,.form-stack{min-width:0}
+.notice-row>div:first-child{min-width:0;overflow-wrap:anywhere}
+
+@media(max-width:760px){
+ .mobile-toggle{display:grid;place-items:center;min-width:44px;min-height:44px}
+ .admin-highlights{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .admin-highlights>div{padding:13px}
+ .admin-breakdowns{grid-template-columns:1fr}
+ .admin-readonly-note{align-items:flex-start}
+ .primary,.secondary,.small-btn,.nav,.notification{min-height:44px}
+ .table-wrap{width:100%}
+ .form-grid label,.form-stack label{min-width:0}
+ .notice-row{align-items:flex-start;flex-direction:column}
+ .row-actions{flex-wrap:wrap}
+}
+
+@media(max-width:420px){
+ .stats-grid{grid-template-columns:1fr 1fr}
+ .admin-highlights{grid-template-columns:1fr 1fr}
+ .panel{padding:15px}
+ .auth-card{width:calc(100% - 24px);padding:22px}
+ .topbar{gap:7px}
+ .crumb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}

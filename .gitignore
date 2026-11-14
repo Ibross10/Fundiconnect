@@ -1,0 +1,21 @@
+node_modules/
+dist/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# SQLite databases
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-shm
+*.sqlite-wal
+
+# Uploaded evidence and files
+uploads/*
+!uploads/.gitkeep
+
+# TypeScript build cache
+*.tsbuildinfo
