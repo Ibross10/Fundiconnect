@@ -31,6 +31,8 @@ test('JWT configuration requires a strong production secret', async (context) =>
     assert.throws(() => resolveClientOrigin({ NODE_ENV: 'production', CLIENT_ORIGIN: 'http://example.test' }), /HTTPS origin/);
     assert.throws(() => resolveClientOrigin({ NODE_ENV: 'production', CLIENT_ORIGIN: 'https://example.test/app' }), /HTTPS origin/);
     assert.equal(resolveClientOrigin({ NODE_ENV: 'production', CLIENT_ORIGIN: 'https://example.test' }), 'https://example.test');
+    assert.equal(resolveClientOrigin({ NODE_ENV: 'production', RENDER_EXTERNAL_URL: 'https://fundiconnect.onrender.com' }), 'https://fundiconnect.onrender.com');
+    assert.throws(() => resolveClientOrigin({ NODE_ENV: 'production', RENDER_EXTERNAL_URL: 'http://fundiconnect.onrender.com' }), /HTTPS origin/);
     assert.equal(resolveClientOrigin({ NODE_ENV: 'development' }), 'http://localhost:5174');
     assert.equal(resolvePort({ PORT: '5170' }), 5170);
     assert.throws(() => resolvePort({ PORT: '70000' }), /PORT must be/);

@@ -32,6 +32,11 @@ const { databaseFile, db } = await import('./db');
 const developmentMode = process.env.NODE_ENV !== 'production';
 const uploadDir = path.resolve(process.env.UPLOAD_DIR || './uploads');
 fs.mkdirSync(uploadDir,{recursive:true});
+const clientBuildDir = path.resolve('dist');
+const clientIndexFile = path.join(clientBuildDir, 'index.html');
+if (!developmentMode && !fs.existsSync(clientIndexFile)) {
+ throw new Error(`Production frontend build was not found at ${clientIndexFile}. Run npm run build before starting the server.`);
+}
 const evidenceTypes: Record<string, { mimeType: string; signature: (content: Buffer) => boolean }> = {
  '.pdf': { mimeType: 'application/pdf', signature: (content) => content.subarray(0, 5).toString('ascii') === '%PDF-' },
  '.jpg': { mimeType: 'image/jpeg', signature: (content) => content.length >= 3 && content[0] === 0xff && content[1] === 0xd8 && content[2] === 0xff },
@@ -802,6 +807,14 @@ app.get('/api/admin/overview',auth,roles('administrator'),(req,res)=>{
   offset:auditPage.offset,
  });
 });
+app.use('/api',(req,res)=>res.status(404).json({error:`API route not found: ${req.method} ${req.path}`}));
+if (!developmentMode) {
+ app.use(express.static(clientBuildDir));
+ app.use((req,res,next)=>{
+  if(req.method!=='GET'||req.path.startsWith('/api/'))return next();
+  res.sendFile(clientIndexFile,(error)=>{if(error)next(error);});
+ });
+}
 app.use((err:any,_req:Request,res:Response,_next:NextFunction)=>{
  if(err instanceof SyntaxError&&'status' in err&&err.status===400){
   return res.status(400).json({error:'Request body contains invalid JSON.'});
@@ -815,7 +828,7 @@ app.use((err:any,_req:Request,res:Response,_next:NextFunction)=>{
  console.error(err);
  res.status(500).json({error:'Unexpected server error.'});
 });
-app.listen(port,()=>{
+app.listen(port,'0.0.0.0',()=>{
  console.log(`FundiConnect API running at http://localhost:${port}`);
  console.info(`[startup] pid=${process.pid} NODE_ENV=${process.env.NODE_ENV} DATABASE_FILE=${databaseFile} CLIENT_ORIGIN=${allowedClientOrigin}`);
 });

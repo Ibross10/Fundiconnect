@@ -55,10 +55,11 @@ export function resolveJwtSecret(environment: NodeJS.ProcessEnv): string {
 }
 
 export function resolveClientOrigin(environment: NodeJS.ProcessEnv): string {
-  const configuredOrigin = environment.CLIENT_ORIGIN?.trim();
   const isProduction = environment.NODE_ENV === 'production';
+  const configuredOrigin = environment.CLIENT_ORIGIN?.trim()
+    || (isProduction ? environment.RENDER_EXTERNAL_URL?.trim() : '');
   if (!configuredOrigin) {
-    if (isProduction) throw new Error('Production requires an explicit HTTPS CLIENT_ORIGIN.');
+    if (isProduction) throw new Error('Production requires an explicit HTTPS CLIENT_ORIGIN or RENDER_EXTERNAL_URL.');
     return 'http://localhost:5174';
   }
   let parsed: URL;

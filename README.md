@@ -27,7 +27,7 @@ FundiConnect is a React + TypeScript construction-workforce platform for Kenya. 
    npm install
    ```
 
-5. Copy `.env.example` to `.env`. It defaults to development mode. For production, run `npm start`, which forces `NODE_ENV=production`, and set `JWT_SECRET` to the standard Base64 encoding of 48 cryptographically random bytes (for example, generate one with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"`); the production entry point refuses to start unless the value has this format and passes additional strength checks. Production also requires an HTTPS `CLIENT_ORIGIN` and absolute `DATABASE_FILE` and `UPLOAD_DIR` paths on persistent storage. Do not rely on development secrets or local filesystem paths in production.
+5. Copy `.env.example` to `.env`. It defaults to development mode. For production, run `npm start`, which forces `NODE_ENV=production`, and set `JWT_SECRET` to the standard Base64 encoding of 48 cryptographically random bytes (for example, generate one with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"`); the production entry point refuses to start unless the value has this format and passes additional strength checks. Production also requires an HTTPS `CLIENT_ORIGIN` and absolute `DATABASE_FILE` and `UPLOAD_DIR` paths. Use persistent storage if your host provides it; local paths inside an ephemeral deployment filesystem may be cleared by the host.
 6. Start frontend and backend together:
 
    ```bash
@@ -59,7 +59,22 @@ npm run build
 npm start
 ```
 
-The production frontend build is written to `dist/`. `npm start` runs the API in production mode. For production hosting, configure a static frontend host and deploy the API separately, set all required production variables, and use persistent storage for the SQLite database and uploaded files. CORS is restricted to the configured client origin. Set `TRUST_PROXY` only to the actual trusted proxy hop count or IP ranges used by the deployment; it defaults to disabled. The API applies per-process, per-IP limits to login (10 per 15 minutes), registration (5 per hour), password-reset requests (5 per hour) and reset submissions (10 per 15 minutes). Override each count/window with the corresponding `*_RATE_LIMIT_MAX` and `*_RATE_LIMIT_WINDOW_MS` settings in `.env.example`. For multiple API replicas, configure equivalent limits at the gateway because in-memory API counters are not shared across instances.
+The production frontend build is written to `dist/`. `npm start` runs the API in production mode and serves that frontend and its client-side routes from the same web service. For a single-service deployment such as Render, use build command `npm ci --include=dev && npm run build` and start command `npm start`. Set `NODE_ENV=production`, `JWT_SECRET` (standard Base64 encoding of 48 cryptographically random bytes), `DATABASE_FILE` and `UPLOAD_DIR` (absolute writable paths, such as `/tmp/fundiconnect.sqlite` and `/tmp/fundiconnect-uploads` on an ephemeral Linux service). Render's `RENDER_EXTERNAL_URL` automatically provides the public HTTPS service URL for CORS; set `CLIENT_ORIGIN` only if you use a custom domain or need to override it. Do not set `VITE_API_BASE_URL`; same-origin relative API requests are used. SQLite and uploaded evidence remain local to the service and may be lost when its ephemeral filesystem is cleared. The production process uses Render's `PORT` and binds to `0.0.0.0`. CORS is restricted to the configured client origin. Leave password-reset email disabled unless Resend credentials and sender configuration have been securely supplied and verified. Set `TRUST_PROXY` only to the actual trusted proxy hop count or IP ranges used by the deployment; it defaults to disabled. The API applies per-process, per-IP limits to login (10 per 15 minutes), registration (5 per hour), password-reset requests (5 per hour) and reset submissions (10 per 15 minutes). Override each count/window with the corresponding `*_RATE_LIMIT_MAX` and `*_RATE_LIMIT_WINDOW_MS` settings in `.env.example`. For multiple API replicas, configure equivalent limits at the gateway because in-memory API counters are not shared across instances.
+
+### Deploy this repository to Render
+
+Use the connected repository's `main` branch and a **Free Web Service**. Set the build command to `npm ci --include=dev && npm run build` and the start command to `npm start`. Add these service environment variables before deploying:
+
+| Key | Value |
+| --- | --- |
+| `NODE_ENV` | `production` |
+| `JWT_SECRET` | Generate a unique value with `node -e "console.log(require('node:crypto').randomBytes(48).toString('base64'))"` and keep it private. |
+| `CLIENT_ORIGIN` | Optional. Render's `RENDER_EXTERNAL_URL` is used automatically; set this only to override it (for example, when using a custom domain). |
+| `DATABASE_FILE` | `/tmp/fundiconnect.sqlite` |
+| `UPLOAD_DIR` | `/tmp/fundiconnect-uploads` |
+| `TRUST_PROXY` | `1` |
+
+Render supplies `PORT`; do not set it manually. Leave `VITE_API_BASE_URL` unset so the frontend uses same-origin API requests. Do not enable password-reset email unless Resend credentials and sender configuration are ready. The free instance's database and uploaded files are ephemeral; export or back up any data you need to keep. After deploying, create the initial administrator with `npm run admin:bootstrap` in an interactive service shell if that feature is available for the service plan. The bootstrap command refuses to overwrite an existing administrator.
 
 ## Main features included
 
