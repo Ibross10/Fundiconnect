@@ -831,5 +831,5 @@ app.use((err:any,_req:Request,res:Response,_next:NextFunction)=>{
 app.listen(port,'0.0.0.0',()=>{
  console.log(`FundiConnect API running at http://localhost:${port}`);
  console.info(`[startup] pid=${process.pid} NODE_ENV=${process.env.NODE_ENV} DATABASE_FILE=${databaseFile} CLIENT_ORIGIN=${allowedClientOrigin}`);
- console.info(`[temporary-admin-check] administratorExists=${Boolean(db.prepare("SELECT 1 FROM users WHERE role='administrator' LIMIT 1'").get())}`);
+ console.info(`[temporary-admin-check] administratorExists=${Boolean(db.prepare("SELECT 1 FROM users WHERE role='administrator' LIMIT 1").get())}`);
 });
