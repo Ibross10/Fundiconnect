@@ -211,9 +211,21 @@ app.post('/api/auth/forgot-password',async(req,res)=>{
    if(developmentMode)console.info(`[password-reset] pid=${process.pid} request=${requestId} link (development only, expires in 30 minutes): ${link}`);
    else{
     try{await sendPasswordResetEmail(process.env,email,link);}
-    catch{
+    catch(error){
      db.prepare('DELETE FROM password_resets WHERE token_hash=?').run(tokenHash);
-     console.error(`[password-reset] pid=${process.pid} request=${requestId} email delivery failed`);
+     const mailError = error as {
+      message?: string;
+      code?: string;
+      responseCode?: number;
+      command?: string;
+     };
+     console.error('[password-reset] Gmail delivery failed:', {
+      requestId,
+      code: mailError.code,
+      responseCode: mailError.responseCode,
+      command: mailError.command,
+      message: mailError.message,
+     });
     }
    }
   }
