@@ -14,6 +14,7 @@ import { match, parseSkillList } from './matching';
 import { getAdminDashboardMetrics, getRecentAdminAuditLogs } from './admin-dashboard';
 import { installSensitiveRouteRateLimits } from './rate-limiting';
 import { sendPasswordResetEmail } from './password-reset-email';
+import { bootstrapAdministrator } from './bootstrap-admin';
 
 type Role = 'fundi'|'foreman'|'assessor'|'administrator';
 type AuthedRequest = Request & { user?: { id:string; role:Role; name:string; email:string; sessionId?:string } };
@@ -29,6 +30,20 @@ if (process.env.NODE_ENV === 'production'
   throw new Error('Production requires absolute DATABASE_FILE and UPLOAD_DIR paths on persistent storage.');
 }
 const { databaseFile, db } = await import('./db');
+const bootstrapName = process.env.ADMIN_BOOTSTRAP_NAME?.trim();
+const bootstrapEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.trim();
+const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+const hasBootstrapConfiguration = Boolean(bootstrapName || bootstrapEmail || bootstrapPassword);
+if (hasBootstrapConfiguration) {
+ if (!bootstrapName || !bootstrapEmail || !bootstrapPassword) {
+  throw new Error('Administrator bootstrap requires ADMIN_BOOTSTRAP_NAME, ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD together.');
+ }
+ const existingAdministrator = db.prepare("SELECT 1 FROM users WHERE role='administrator' LIMIT 1").get();
+ if (!existingAdministrator) {
+  await bootstrapAdministrator(db, { name: bootstrapName, email: bootstrapEmail, password: bootstrapPassword });
+  console.info('[startup] Initial administrator account created from secure environment configuration.');
+ }
+}
 const developmentMode = process.env.NODE_ENV !== 'production';
 const uploadDir = path.resolve(process.env.UPLOAD_DIR || './uploads');
 fs.mkdirSync(uploadDir,{recursive:true});
